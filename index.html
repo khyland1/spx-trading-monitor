@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPX Trading Monitor</title>
+<style>
+body{background:#090d14;color:white;font-family:Arial;margin:0;padding:18px}
+h1{font-size:25px}
+.card{background:#171f2c;padding:18px;border-radius:15px;margin:15px 0}
+.price{font-size:30px;font-weight:bold}
+.green{color:#00d69a}.red{color:#ff5364}
+button{padding:14px;border:0;border-radius:10px;background:#26364b;color:white}
+small{color:#9ba9bb}
+</style>
+</head>
+<body>
+<h1>SPX Trading Monitor</h1>
+<small>Kalshi · 15-minute contracts</small>
+
+<div class="card">
+<small>CONNECTION STATUS</small>
+<h2 id="status">Connecting...</h2>
+</div>
+
+<div class="card">
+<small>TRADING SIGNAL</small>
+<h1 id="signal">PASS</h1>
+<p id="reason">Waiting for verified market data.</p>
+</div>
+
+<div class="card">
+<small>ACCOUNT BALANCE</small>
+<div class="price">$600</div>
+<small>Maximum initial risk: $10 per trade</small>
+</div>
+
+<div class="card">
+<small>MARKET DATA</small>
+<p id="market">No live data loaded.</p>
+<button onclick="loadMarket()">Refresh market</button>
+</div>
+
+<div class="card">
+<small>RISK RULE</small>
+<p>Never enter without a verified price, settlement rule and defined exit.</p>
+</div>
+
+<script>
+async function loadMarket(){
+const status=document.getElementById('status');
+const market=document.getElementById('market');
+status.textContent='Checking public feed...';
+try{
+const r=await fetch('https://api.elections.kalshi.com/trade-api/v2/markets?limit=100&status=open');
+if(!r.ok)throw Error('Feed unavailable');
+const d=await r.json();
+const matches=(d.markets||[]).filter(m=>
+/SPX.*15|15.*SPX|S&P 500.*15/i.test(m.title||'')||
+/KXINX15M/i.test(m.ticker||''));
+if(!matches.length)throw Error('No matching active contract found');
+const m=matches[0];
+market.textContent='Contract: '+m.title+
+' | Ticker: '+m.ticker+
+' | Last price: '+(m.last_price??'Unavailable')+
+' | Volume: '+(m.volume??'Unavailable');
+status.textContent='PUBLIC API CONNECTED';
+document.getElementById('signal').textContent='PASS';
+document.getElementById('reason').textContent=
+'Market found. Validate price and settlement before trading.';
+}catch(e){
+status.textContent='DATA UNAVAILABLE';
+market.textContent=e.message;
+document.getElementById('signal').textContent='PASS';
+}
+}
+loadMarket();
+</script>
+</body>
+</html>
